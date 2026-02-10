@@ -1,5 +1,5 @@
 import { Share2, CheckCircle } from 'lucide-react';
-import type { AnalysisData, EvidenceItem } from '../App';
+import type { AnalysisData } from '../App';
 
 interface SafeAnalysisResultProps {
   onNavigate: (page: 'home' | 'loading' | 'analysis' | 'safeanalysis' | 'mypage' | 
@@ -8,15 +8,23 @@ interface SafeAnalysisResultProps {
   analysisData: AnalysisData | null;
 }
 
-function fallbackSafeEvidence(): EvidenceItem[] {
-  return [
-    { title: '의심 링크 없음', description: '외부 링크가 포함되어 있지 않아요' },
-    { title: '정상적인 내용', description: '피싱 패턴이 발견되지 않았어요' },
-  ];
+function formatRawEvidence(v: unknown): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) {
+    return v.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join('\n');
+  }
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return String(v);
+  }
 }
 
 export function SafeAnalysisResult({ onNavigate, messageText, analysisData }: SafeAnalysisResultProps) {
-  const evidence = analysisData?.evidence?.length ? analysisData.evidence : fallbackSafeEvidence();
+  const evidence = analysisData?.evidence ?? [];
+  const rawText = formatRawEvidence(analysisData?.evidence_raw);
+  const rawJson = analysisData?.raw ? JSON.stringify(analysisData.raw, null, 2) : '';
   return (
     <div className="h-full overflow-y-auto pb-24 pt-8">
       {/* 헤더 */}
@@ -51,18 +59,43 @@ export function SafeAnalysisResult({ onNavigate, messageText, analysisData }: Sa
       {/* AI 분석 결과 */}
       <div className="mx-4 mb-6">
         <h3 className="text-lg font-bold mb-3">AI 분석 결과</h3>
+        {evidence.length === 0 ? (
+          <div className="bg-gray-50 rounded-2xl p-5 text-sm text-gray-600">
+            LLM 근거를 불러오지 못했습니다. 아래의 “원문/응답 확인”에서 실제 응답을 확인해 주세요.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {evidence.map((item, idx) => (
+              <div key={`${item.title}-${idx}`} className="flex items-start gap-3 bg-green-50 rounded-xl p-4">
+                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-sm">✓</span>
+                </div>
+                <div>
+                  <div className="text-base font-bold mb-1">{item.title}</div>
+                  <div className="text-sm text-gray-600 whitespace-pre-wrap">{item.description}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 원문/응답 확인 */}
+      <div className="mx-4 mb-10">
+        <h3 className="text-lg font-bold mb-3">원문/응답 확인</h3>
         <div className="space-y-3">
-          {evidence.map((item, idx) => (
-            <div key={`${item.title}-${idx}`} className="flex items-start gap-3 bg-green-50 rounded-xl p-4">
-              <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-white text-sm">✓</span>
-              </div>
-              <div>
-                <div className="text-base font-bold mb-1">{item.title}</div>
-                <div className="text-sm text-gray-600 whitespace-pre-wrap">{item.description}</div>
-              </div>
-            </div>
-          ))}
+          <details className="bg-gray-50 rounded-2xl p-5" open>
+            <summary className="cursor-pointer text-sm font-semibold text-gray-800">LLM 근거 원문(가공 전)</summary>
+            <pre className="mt-3 text-xs text-gray-700 whitespace-pre-wrap break-words">
+              {rawText || '원문 근거가 없습니다.'}
+            </pre>
+          </details>
+          <details className="bg-gray-50 rounded-2xl p-5">
+            <summary className="cursor-pointer text-sm font-semibold text-gray-800">전체 API 응답(JSON)</summary>
+            <pre className="mt-3 text-xs text-gray-700 whitespace-pre-wrap break-words">
+              {rawJson || '응답이 없습니다.'}
+            </pre>
+          </details>
         </div>
       </div>
 

@@ -30,6 +30,16 @@ function normalizeAnalysisResponse(payload: any): AnalysisData {
 
   // Candidate evidence sources
   const candidates = [
+    // 백엔드가 원본(model server/LLM) 응답을 result.raw에 그대로 넣는 경우를 우선 사용
+    root?.raw?.evidence,
+    root?.raw?.reasons,
+    root?.raw?.reason,
+    root?.raw?.rationale,
+    root?.raw?.justification,
+    root?.raw?.explanation,
+    root?.raw?.supporting_facts,
+    root?.raw?.result?.evidence,
+    root?.raw?.result?.reasons,
     root?.evidence,
     root?.reasons,
     root?.reason,
@@ -42,6 +52,7 @@ function normalizeAnalysisResponse(payload: any): AnalysisData {
   ];
 
   let evidence: EvidenceItem[] | undefined;
+  let evidence_raw: unknown = undefined;
 
   for (const c of candidates) {
     if (!c) continue;
@@ -52,6 +63,7 @@ function normalizeAnalysisResponse(payload: any): AnalysisData {
         title: String((x as any).title ?? ''),
         description: String((x as any).description ?? ''),
       })).filter((x) => x.title.length > 0);
+      evidence_raw = c;
       break;
     }
 
@@ -61,6 +73,7 @@ function normalizeAnalysisResponse(payload: any): AnalysisData {
       const parsed = parseEvidencePairs(lines);
       if (parsed.length > 0) {
         evidence = parsed;
+        evidence_raw = c;
         break;
       }
     }
@@ -75,12 +88,13 @@ function normalizeAnalysisResponse(payload: any): AnalysisData {
       const parsed = parseEvidencePairs(lines);
       if (parsed.length > 0) {
         evidence = parsed;
+        evidence_raw = c;
         break;
       }
     }
   }
 
-  return { label, confidence, evidence, raw: payload };
+  return { label, confidence, evidence, evidence_raw, raw: payload };
 }
 
 export function Loading({ onNavigate, analysisText, onResult }: LoadingProps) {
@@ -89,8 +103,8 @@ export function Loading({ onNavigate, analysisText, onResult }: LoadingProps) {
 
     const run = async () => {
       try {
-        const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? '';
-        const res = await fetch(`${API_BASE}/api/v1/analyze`, {
+        const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? 'http://localhost:8000';
+        const res = await fetch(`${API_BASE}/analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: analysisText }),
@@ -101,15 +115,13 @@ export function Loading({ onNavigate, analysisText, onResult }: LoadingProps) {
         const data = normalizeAnalysisResponse(json);
         onResult(data);
 
-        const lbl = String(data.label ?? '').toLowerCase();
-        const isSafe = lbl.includes('정상') || lbl.includes('safe') || lbl.includes('normal') || lbl.includes('benign') || lbl.includes('ham');
-        onNavigate(isSafe ? 'safeanalysis' : 'analysis');
-      } catch (e) {
-        // Fallback: keep existing UI behavior if API fails
-        const dangerKeywords = ['링크', '클릭', '환급', '당첨', '긴급', '확인', '계좌', '송금', '검찰', '경찰', '금감원', '보내', '입금', '대출', 'http', 'www'];
-        const isDangerous = dangerKeywords.some((keyword) => analysisText.includes(keyword));
-        onResult({ label: isDangerous ? 'smishing' : 'safe', confidence: undefined, evidence: undefined, raw: null });
+        const isDangerous = String(data.label ?? '').toLowerCase().includes('smish') || String(data.label ?? '').includes('위험');
         onNavigate(isDangerous ? 'analysis' : 'safeanalysis');
+      } catch (e) {
+        // API 호출 실패 시: 가짜 근거/가짜 판정은 만들지 않는다.
+        onResult({ label: 'unknown', confidence: undefined, evidence: undefined, evidence_raw: undefined, raw: { error: String(e) } });
+        // 결과 화면은 사용자가 원문/에러를 확인할 수 있도록 분석 페이지로 보낸다.
+        onNavigate('analysis');
       }
     };
 

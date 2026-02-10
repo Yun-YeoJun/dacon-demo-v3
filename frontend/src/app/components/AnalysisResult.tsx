@@ -14,16 +14,23 @@ const COLOR_PRESETS = [
   { bg: 'bg-yellow-50', dot: 'bg-yellow-500', icon: '!' },
 ];
 
-function fallbackDangerEvidence(): EvidenceItem[] {
-  return [
-    { title: '의심스러운 링크 포함', description: '공식 사이트가 아닌 링크가 포함되어 있어요' },
-    { title: '긴급성 유도', description: '24시간 제한 등으로 긴급성을 조장해요' },
-    { title: '금전 관련 내용', description: '환급, 세금 등 금전적 이득을 언급하고 있어요' },
-  ];
+function formatRawEvidence(v: unknown): string {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) {
+    return v.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join('\n');
+  }
+  try {
+    return JSON.stringify(v, null, 2);
+  } catch {
+    return String(v);
+  }
 }
 
 export function AnalysisResult({ onNavigate, messageText, analysisData }: AnalysisResultProps) {
-  const evidence = analysisData?.evidence?.length ? analysisData.evidence : fallbackDangerEvidence();
+  const evidence = analysisData?.evidence ?? [];
+  const rawText = formatRawEvidence(analysisData?.evidence_raw);
+  const rawJson = analysisData?.raw ? JSON.stringify(analysisData.raw, null, 2) : '';
   return (
     <div className="h-full overflow-y-auto pb-24 pt-8">
       {/* 헤더 */}
@@ -58,8 +65,13 @@ export function AnalysisResult({ onNavigate, messageText, analysisData }: Analys
       {/* AI 분석 결과 */}
       <div className="mx-4 mb-6">
         <h3 className="text-lg font-bold mb-3">AI 분석 결과</h3>
-        <div className="space-y-3">
-          {evidence.map((item, idx) => {
+        {evidence.length === 0 ? (
+          <div className="bg-gray-50 rounded-2xl p-5 text-sm text-gray-600">
+            LLM 근거를 불러오지 못했습니다. 아래의 “원문/응답 확인”에서 실제 응답을 확인해 주세요.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {evidence.map((item, idx) => {
             const preset = COLOR_PRESETS[idx % COLOR_PRESETS.length];
             return (
               <div key={`${item.title}-${idx}`} className={`flex items-start gap-3 ${preset.bg} rounded-xl p-4`}>
@@ -72,7 +84,27 @@ export function AnalysisResult({ onNavigate, messageText, analysisData }: Analys
                 </div>
               </div>
             );
-          })}
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 원문/응답 확인 */}
+      <div className="mx-4 mb-10">
+        <h3 className="text-lg font-bold mb-3">원문/응답 확인</h3>
+        <div className="space-y-3">
+          <details className="bg-gray-50 rounded-2xl p-5" open>
+            <summary className="cursor-pointer text-sm font-semibold text-gray-800">LLM 근거 원문(가공 전)</summary>
+            <pre className="mt-3 text-xs text-gray-700 whitespace-pre-wrap break-words">
+              {rawText || '원문 근거가 없습니다.'}
+            </pre>
+          </details>
+          <details className="bg-gray-50 rounded-2xl p-5">
+            <summary className="cursor-pointer text-sm font-semibold text-gray-800">전체 API 응답(JSON)</summary>
+            <pre className="mt-3 text-xs text-gray-700 whitespace-pre-wrap break-words">
+              {rawJson || '응답이 없습니다.'}
+            </pre>
+          </details>
         </div>
       </div>
 

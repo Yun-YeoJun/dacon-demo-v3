@@ -13,6 +13,8 @@ export type AnalysisData = {
   label?: string;
   confidence?: number;
   evidence?: EvidenceItem[];
+  /** LLM 근거 원문(가공 전). 문자열/배열/객체 모두 가능 */
+  evidence_raw?: unknown;
   // raw payload for debugging / future use
   raw?: unknown;
 };
@@ -32,10 +34,15 @@ export default function App() {
   };
 
   return (
-    <div className="size-full flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md h-full bg-white relative">
+    <div className="min-h-screen w-full flex justify-center bg-gray-100">
+      {/*
+        NOTE:
+        - 하단 네비게이션은 항상 뷰포트 최하단에 고정(fixed)
+        - 콘텐츠가 네비게이션에 가리지 않도록 컨테이너에 padding-bottom을 준다
+      */}
+      <div className="w-full max-w-md min-h-screen bg-white relative pb-[88px]">
         {/* 페이지 컨텐츠 */}
-        <div className="h-full">
+        <div className="min-h-screen">
           {currentPage === 'home' && <Home onNavigate={setCurrentPage} onAnalyze={handleAnalyze} />}
           {currentPage === 'loading' && (
             <Loading
@@ -64,8 +71,11 @@ export default function App() {
         </div>
         
         {/* 하단 네비게이션 바 */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-white border-t border-gray-200">
-          <div className="flex justify-around items-center h-14">
+        <div
+          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-200"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          <div className="flex justify-around items-center h-16">
             <button className="flex flex-col items-center gap-1" onClick={() => setCurrentPage('search')}>
               <div className={`w-6 h-6 ${currentPage === 'search' ? 'text-blue-500' : 'text-gray-400'}`}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -95,7 +105,8 @@ export default function App() {
               )}
             </button>
           </div>
-          <div className="h-6 bg-white" />
+          {/* iOS 홈 인디케이터 영역 */}
+          <div className="h-4 bg-white" />
         </div>
       </div>
     </div>
