@@ -102,11 +102,11 @@ export function Loading({ onNavigate, analysisText, onResult }: LoadingProps) {
         onResult(data);
 
         const lbl = String(data.label ?? '').toLowerCase();
-        const isDangerous = lbl.includes('smish') || lbl.includes('스미싱') || lbl.includes('위험');
-        onNavigate(isDangerous ? 'analysis' : 'safeanalysis');
+        const isSafe = lbl.includes('정상') || lbl.includes('safe') || lbl.includes('normal') || lbl.includes('benign') || lbl.includes('ham');
+        onNavigate(isSafe ? 'safeanalysis' : 'analysis');
       } catch (e) {
         // Fallback: keep existing UI behavior if API fails
-        const dangerKeywords = ['링크', '클릭', '환급', '당첨', '긴급', '확인', '계좌', '송금', 'http', 'www'];
+        const dangerKeywords = ['링크', '클릭', '환급', '당첨', '긴급', '확인', '계좌', '송금', '검찰', '경찰', '금감원', '보내', '입금', '대출', 'http', 'www'];
         const isDangerous = dangerKeywords.some((keyword) => analysisText.includes(keyword));
         onResult({ label: isDangerous ? 'smishing' : 'safe', confidence: undefined, evidence: undefined, raw: null });
         onNavigate(isDangerous ? 'analysis' : 'safeanalysis');
