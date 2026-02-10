@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # 모델 서버의 "완전한" 엔드포인트 URL
     # 예: https://api.xxx.com/api/v1/analyze/sms
-    model_url: str
+    model_url: str = "https://34lgfbpo1egrt7-8000.proxy.runpod.net/predict"
 
     request_timeout_seconds: float = 30.0
     allowed_origins: str = "*"  # 개발용: "*" 권장, 배포 시 도메인으로 제한
