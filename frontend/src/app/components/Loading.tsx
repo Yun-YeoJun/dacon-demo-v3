@@ -89,7 +89,7 @@ export function Loading({ onNavigate, analysisText, onResult }: LoadingProps) {
 
     const run = async () => {
       try {
-        const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? 'http://3.39.93.75';
+        const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? '';
         const res = await fetch(`${API_BASE}/api/v1/analyze`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
