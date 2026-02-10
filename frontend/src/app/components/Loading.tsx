@@ -101,7 +101,8 @@ export function Loading({ onNavigate, analysisText, onResult }: LoadingProps) {
         const data = normalizeAnalysisResponse(json);
         onResult(data);
 
-        const isDangerous = String(data.label ?? '').toLowerCase().includes('smish') || String(data.label ?? '').includes('위험');
+        const lbl = String(data.label ?? '').toLowerCase();
+        const isDangerous = lbl.includes('smish') || lbl.includes('스미싱') || lbl.includes('위험');
         onNavigate(isDangerous ? 'analysis' : 'safeanalysis');
       } catch (e) {
         // Fallback: keep existing UI behavior if API fails
