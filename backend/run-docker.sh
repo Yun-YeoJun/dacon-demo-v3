@@ -21,7 +21,6 @@ docker build -t "$IMAGE_NAME" .
 echo ":: Starting container on port ${PORT}..."
 docker run -d \
   --name "$CONTAINER_NAME" \
-  --env-file .env \
   -p "${PORT}:8000" \
   -v "$(pwd)/data:/app/data" \
   "$IMAGE_NAME"
